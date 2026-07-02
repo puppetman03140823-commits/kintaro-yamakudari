@@ -1,0 +1,16 @@
+{
+  "name": "金太郎 山くだり",
+  "short_name": "金太郎",
+  "description": "クマに乗って足柄山をかけおりる、子供向けミニゲーム",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#7ec8e3",
+  "theme_color": "#7ec8e3",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
