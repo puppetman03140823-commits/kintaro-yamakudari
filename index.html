@@ -251,6 +251,7 @@ let player, obstacles, collectibles, particles, clouds, hills, treesBg, spawnT, 
 let bobT=0, runT=0, shake=0;
 const MAXLIVES=3;            // 何回ぶつかっても大丈夫か（3回目でどっすん）
 let lives=MAXLIVES, invT=0;  // invT>0 のあいだは無敵＆点滅
+let stage=0, stageMsgT=0;    // 難易度ステージ（200/500/1000mで上がる）と「スピードアップ！」表示の残り
 
 const BEST_KEY = 'kintaro_yamakudari_best';
 let best = parseInt(localStorage.getItem(BEST_KEY)||'0',10);
@@ -263,6 +264,7 @@ function reset(){
   jumpV = -Math.sqrt(2*gravity*(H*0.30)); // だいたい画面の3割の高さまで届く
   score=0; distance=0; coins=0;
   lives=MAXLIVES; invT=0;
+  stage=0; stageMsgT=0;
   player = { x:W*0.22, y:groundY, w:Math.max(64,W*0.13), h:Math.max(64,W*0.13),
              vy:0, onGround:true, jumps:0 };
   obstacles=[]; collectibles=[]; particles=[];
@@ -326,6 +328,7 @@ function sndCoin(){ tone(1320,0.07,{type:'triangle',vol:0.16}); tone(1760,0.12,{
 function sndCrash(){ tone(170,0.30,{type:'sawtooth',vol:0.20,slide:-120}); tone(95,0.40,{type:'triangle',vol:0.24,slide:-55,delay:0.06}); } // ドテッ
 function sndStart(){ [523,659,784].forEach((f,i)=>tone(f,0.12,{type:'triangle',vol:0.14,delay:i*0.09})); } // ピロリロ♪
 function sndHit(){ tone(330,0.10,{type:'square',vol:0.13,slide:-150}); tone(200,0.14,{type:'triangle',vol:0.14,slide:-70,delay:0.05}); } // ぶつかった（どっすんより軽い）
+function sndStageUp(){ [660,880,1175].forEach((f,i)=>tone(f,0.12,{type:'square',vol:0.11,delay:i*0.08})); } // スピードアップ♪
 
 // ----- BGM（効果音と同じ合成方式・ファイル不要。明るいループを流す） -----
 // メロディはCメジャー・ペンタトニック（和風で明るい）。0=休符。数字はMIDI番号。
@@ -417,8 +420,8 @@ document.getElementById('overScreen').addEventListener('click', ()=>{ ensureAudi
 function obSize(big){ return big ? Math.max(80, H*0.42) : Math.max(50, H*0.20); }
 function spawnObstacle(){
   const type = Math.random()<0.5 ? 'rock' : 'stump';
-  // 大物は岩だけ・序盤は出さない（切り株は小さいサイズのみ）
-  const big = type==='rock' && distance > 600 && Math.random() < 0.35;
+  // 大物は岩だけ・ステージ1以降（200m〜）で出る。ステージが上がるほど出やすい
+  const big = type==='rock' && stage>=1 && Math.random() < (0.25 + stage*0.05);
   const sz = obSize(big);
   obstacles.push({ x:W+sz*2, y:groundY, w:sz, h:sz, type, big });
 }
@@ -458,8 +461,12 @@ function update(){
   if(state!==STATE.PLAY) { if(shake>0) shake*=0.9; return; }
   bobT+=0.15; runT+=speed*0.04;
   distance += speed;
-  speed = baseSpeed + distance*0.00018; // だんだん加速
   score = distance*0.05; // 走った距離（メートル換算）
+  // 難易度：距離でなめらかに加速しつつ、節目(200/500/1000m)で一段ギアアップ。全体に上限をつけて理不尽を防ぐ(A)
+  const ns = score>=1000 ? 3 : score>=500 ? 2 : score>=200 ? 1 : 0;
+  if(ns>stage){ stage=ns; stageMsgT=100; shake=Math.max(shake,7); sndStageUp(); } // 節目でギアアップ(B)
+  const ramp = Math.min(distance*0.00016, baseSpeed*0.7);
+  speed = Math.min(baseSpeed + ramp + stage*(baseSpeed*0.15), baseSpeed*2.1);
 
   // プレイヤー物理
   player.vy += gravity;
@@ -467,7 +474,7 @@ function update(){
   if(player.y >= groundY){ player.y=groundY; player.vy=0; player.onGround=true; player.jumps=0; }
 
   // スポーン
-  if(--spawnT<=0){ spawnObstacle(); spawnT = Math.max(48, 110 - distance*0.004) + Math.random()*40; }
+  if(--spawnT<=0){ spawnObstacle(); spawnT = Math.max(46, 110 - distance*0.004 - stage*4) + Math.random()*40; }
   if(--coinT<=0){ spawnCoin(); coinT = 70 + Math.random()*80; }
 
   // 障害物
@@ -495,6 +502,8 @@ function update(){
       for(let i=0;i<8;i++) particles.push(sparkle(c.x,c.y));
     }
   }
+
+  if(stageMsgT>0) stageMsgT--;
 
   // パーティクル
   for(const p of particles){ p.x+=p.vx; p.y+=p.vy; p.vy+=0.15; p.life-=0.03; }
@@ -589,6 +598,17 @@ function draw(){
       ctx.fillStyle = i<lives ? '#e53935' : 'rgba(255,255,255,0.4)';
       ctx.strokeText('♥', hx0+i*hgap, 18+hr);
       ctx.fillText('♥', hx0+i*hgap, 18+hr);
+    }
+    // ステージアップの合図（少しのあいだ中央に「スピードアップ！」）
+    if(stageMsgT>0){
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, stageMsgT/30);
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.font=`${Math.max(24,W*0.058)}px "Mochiy Pop One",sans-serif`;
+      ctx.lineWidth=7; ctx.strokeStyle='#b5651d'; ctx.fillStyle='#fff';
+      ctx.strokeText('スピードアップ！', W/2, H*0.30);
+      ctx.fillText('スピードアップ！', W/2, H*0.30);
+      ctx.restore();
     }
   }
 
