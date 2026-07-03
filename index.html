@@ -39,6 +39,16 @@
   /* スタート画面：タイトルロゴ画像＋説明看板画像 */
   .title-img { width:clamp(200px,46vw,400px); height:auto; filter:drop-shadow(0 6px 10px rgba(0,0,0,.28)); }
   .board-img { width:clamp(220px,52vw,440px); height:auto; filter:drop-shadow(0 6px 10px rgba(0,0,0,.28)); }
+  /* 結果看板：画像の上に実スコアを重ねる。座標は数字を消した位置に合わせた割合 */
+  .result-board { position:relative; display:inline-block; line-height:0; }
+  .result-img { width:clamp(220px,52vw,440px); height:auto; filter:drop-shadow(0 6px 10px rgba(0,0,0,.28)); }
+  .rv { position:absolute; transform:translate(-50%,-50%); line-height:1; white-space:nowrap;
+        font-family:'Mochiy Pop One','Hiragino Maru Gothic ProN',sans-serif; font-weight:400;
+        text-shadow:2px 2px 0 #fff,-2px -2px 0 #fff,2px -2px 0 #fff,-2px 2px 0 #fff,0 3px 2px rgba(0,0,0,.15); }
+  .rv-u { font-size:0.62em; margin-left:1px; }
+  .rv-dist { left:50%;   top:31%;   color:#e8531f; font-size:clamp(26px,6.4vw,52px); }
+  .rv-coin { left:52.4%; top:51%;   color:#e8531f; font-size:clamp(18px,4.4vw,34px); }
+  .rv-best { left:67%;   top:66.5%; color:#3f8f2e; font-size:clamp(16px,3.8vw,30px); }
   .og-left-old { display:flex; flex-direction:column; align-items:center; gap:14px; }
   /* 以下は画像が読めない時の予備看板 */
   .title-hero { width:clamp(150px,38vw,250px); height:auto; filter:drop-shadow(0 6px 10px rgba(0,0,0,.28)); }
@@ -65,6 +75,10 @@
     .crash-img { width:auto; height:clamp(120px,44vh,230px); }
     .title-img { width:auto; height:clamp(150px,56vh,320px); }
     .board-img { width:auto; height:clamp(170px,64vh,360px); }
+    .result-img { width:auto; height:clamp(180px,68vh,360px); }
+    .rv-dist { font-size:clamp(24px,10vh,50px); }
+    .rv-coin { font-size:clamp(16px,6.2vh,34px); }
+    .rv-best { font-size:clamp(14px,5.4vh,28px); }
     .title-hero { width:auto; height:clamp(110px,42vh,220px); }
     h1.sign { padding:8px 22px; }
     h1.sign .t1 { font-size:clamp(16px,5vh,28px); }
@@ -121,11 +135,19 @@
       <div class="emoji" id="crashEmoji">💥</div>
       <h1>どっすん！</h1>
     </div>
-    <div class="panel">
+    <!-- 結果看板：数字を消した画像に、実際のスコアを重ねる。画像が無い時は下の予備パネルに戻る -->
+    <div class="result-board" id="resultBoard">
+      <img class="result-img" src="result.png" alt="けっか"
+           onerror="document.getElementById('resultBoard').classList.add('hidden');document.getElementById('resultPanel').classList.remove('hidden');">
+      <div class="rv rv-dist"><span class="v-score">0</span><span class="rv-u">m</span></div>
+      <div class="rv rv-coin"><span class="v-coins">0</span></div>
+      <div class="rv rv-best"><span class="v-best">0</span><span class="rv-u">m</span></div>
+    </div>
+    <div class="panel hidden" id="resultPanel">
       <div class="sub">はしった きょり</div>
-      <div class="score-big"><span id="finalScore">0</span><span class="unit">m</span></div>
-      <div class="sub">こばん <span id="finalCoins">0</span> まい ✨</div>
-      <div class="sub">さいこうきろく <span id="bestScore">0</span>m 🏆</div>
+      <div class="score-big"><span class="v-score">0</span><span class="unit">m</span></div>
+      <div class="sub">こばん <span class="v-coins">0</span> まい ✨</div>
+      <div class="sub">さいこうきろく <span class="v-best">0</span>m 🏆</div>
       <button class="btn" id="retryBtn">もういちど</button>
     </div>
   </div>
@@ -268,9 +290,9 @@ function gameOver(){
   shake = 16;
   const final = Math.floor(score);
   if(final>best){ best=final; localStorage.setItem(BEST_KEY, best); }
-  document.getElementById('finalScore').textContent = final;
-  document.getElementById('finalCoins').textContent = coins;
-  document.getElementById('bestScore').textContent = best;
+  document.querySelectorAll('.v-score').forEach(e=>e.textContent=final);
+  document.querySelectorAll('.v-coins').forEach(e=>e.textContent=coins);
+  document.querySelectorAll('.v-best').forEach(e=>e.textContent=best);
   setTimeout(()=>document.getElementById('overScreen').classList.remove('hidden'), 500);
 }
 
