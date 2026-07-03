@@ -249,6 +249,8 @@ let state = STATE.READY;
 let groundY, speed, baseSpeed, score, distance, coins, gravity, jumpV;
 let player, obstacles, collectibles, particles, clouds, hills, treesBg, spawnT, coinT;
 let bobT=0, runT=0, shake=0;
+const MAXLIVES=3;            // 何回ぶつかっても大丈夫か（3回目でどっすん）
+let lives=MAXLIVES, invT=0;  // invT>0 のあいだは無敵＆点滅
 
 const BEST_KEY = 'kintaro_yamakudari_best';
 let best = parseInt(localStorage.getItem(BEST_KEY)||'0',10);
@@ -260,6 +262,7 @@ function reset(){
   gravity = Math.max(0.7, H*0.0017);
   jumpV = -Math.sqrt(2*gravity*(H*0.30)); // だいたい画面の3割の高さまで届く
   score=0; distance=0; coins=0;
+  lives=MAXLIVES; invT=0;
   player = { x:W*0.22, y:groundY, w:Math.max(64,W*0.13), h:Math.max(64,W*0.13),
              vy:0, onGround:true, jumps:0 };
   obstacles=[]; collectibles=[]; particles=[];
@@ -322,6 +325,7 @@ function sndJump(n){ tone(n===0?300:380, 0.16, {type:'square', vol:0.10, slide:+
 function sndCoin(){ tone(1320,0.07,{type:'triangle',vol:0.16}); tone(1760,0.12,{type:'triangle',vol:0.16,delay:0.06}); } // キラン
 function sndCrash(){ tone(170,0.30,{type:'sawtooth',vol:0.20,slide:-120}); tone(95,0.40,{type:'triangle',vol:0.24,slide:-55,delay:0.06}); } // ドテッ
 function sndStart(){ [523,659,784].forEach((f,i)=>tone(f,0.12,{type:'triangle',vol:0.14,delay:i*0.09})); } // ピロリロ♪
+function sndHit(){ tone(330,0.10,{type:'square',vol:0.13,slide:-150}); tone(200,0.14,{type:'triangle',vol:0.14,slide:-70,delay:0.05}); } // ぶつかった（どっすんより軽い）
 
 // ----- BGM（効果音と同じ合成方式・ファイル不要。明るいループを流す） -----
 // メロディはCメジャー・ペンタトニック（和風で明るい）。0=休符。数字はMIDI番号。
@@ -436,6 +440,16 @@ function sparkle(x,y){
   return { x, y, vx:(Math.random()-0.5)*5, vy:(Math.random()-0.5)*5-2, life:1, r:3+Math.random()*4, col:'#ffd54f' };
 }
 
+// 障害物にぶつかった時：ハートを1つ減らし、最後の1つでどっすん。減った直後は少しのあいだ無敵＆点滅
+function hit(){
+  lives--;
+  if(lives<=0){ gameOver(); return; }
+  invT = 96;                 // 約1.6秒 無敵
+  shake = 10;
+  sndHit();
+  for(let i=0;i<10;i++) particles.push(sparkle(player.x, player.y-player.h*0.4));
+}
+
 // ----- 更新 -----
 function aabb(a,b){ return a.x-a.w/2 < b.x+b.w/2 && a.x+a.w/2 > b.x-b.w/2 &&
                            a.y-a.h < b.y && a.y > b.y-b.h; }
@@ -464,11 +478,14 @@ function update(){
   collectibles = collectibles.filter(c=>c.x > -40 && !c.dead);
 
   // 当たり判定（子供向けにかなり甘め：かすったくらいでは当たらない）
-  const pb = { x:player.x, y:player.y, w:player.w*0.42, h:player.h*0.8 };
-  for(const o of obstacles){
-    // 普通サイズは縦もゆるめ。大物は「2段ジャンプ必須」が保てる判定を維持
-    const ob = { x:o.x, y:o.y, w:o.w*0.48, h:o.h*(o.big ? 0.8 : 0.68) };
-    if(aabb(pb,ob)){ gameOver(); break; }
+  if(invT>0) invT--;                         // 無敵時間を減らす
+  if(invT<=0){
+    const pb = { x:player.x, y:player.y, w:player.w*0.42, h:player.h*0.8 };
+    for(const o of obstacles){
+      // 普通サイズは縦もゆるめ。大物は「2段ジャンプ必須」が保てる判定を維持
+      const ob = { x:o.x, y:o.y, w:o.w*0.48, h:o.h*(o.big ? 0.8 : 0.68) };
+      if(aabb(pb,ob)){ hit(); break; }
+    }
   }
   for(const c of collectibles){
     const dx=c.x-player.x, dy=c.y-(player.y-player.h*0.5);
@@ -537,7 +554,8 @@ function draw(){
   }
 
   // プレイヤー（クマ＋金太郎）※スタート画面はオーバーレイのイラストが主役なので描かない
-  if(state!==STATE.READY) drawBearWithKintaro(player.x, player.y, player.w);
+  // 無敵中はチカチカ点滅（4フレームごとに表示/非表示）
+  if(state!==STATE.READY && !(invT>0 && Math.floor(invT/4)%2===0)) drawBearWithKintaro(player.x, player.y, player.w);
 
   // パーティクル
   for(const p of particles){
@@ -561,6 +579,17 @@ function draw(){
     ctx.strokeText(numStr, W-16, cyc); ctx.fillText(numStr, W-16, cyc);
     const numW = ctx.measureText(numStr).width;
     drawCoin(W-16-numW-iconR-8, cyc, iconR, 0);
+    // ハート（残りライフ・上部中央）
+    const hr = Math.max(11, W*0.022);
+    const hgap = hr*2.6;
+    const hx0 = W/2 - hgap*(MAXLIVES-1)/2;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font=`${hr*2.1}px sans-serif`; ctx.lineWidth=3; ctx.strokeStyle='rgba(255,255,255,0.9)';
+    for(let i=0;i<MAXLIVES;i++){
+      ctx.fillStyle = i<lives ? '#e53935' : 'rgba(255,255,255,0.4)';
+      ctx.strokeText('♥', hx0+i*hgap, 18+hr);
+      ctx.fillText('♥', hx0+i*hgap, 18+hr);
+    }
   }
 
   ctx.restore();
