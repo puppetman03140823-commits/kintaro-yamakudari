@@ -1,6 +1,6 @@
 {
-  "name": "金太郎 山くだり",
-  "short_name": "金太郎",
+  "name": "きんたろうラン",
+  "short_name": "きんたろう",
   "description": "クマに乗って足柄山をかけおりる、子供向けミニゲーム",
   "start_url": "./",
   "scope": "./",
