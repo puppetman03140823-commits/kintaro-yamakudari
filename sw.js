@@ -1,6 +1,7 @@
-const CACHE='kintaro-v1';
+const CACHE='kintaro-v2';
 const ASSETS=['./','index.html','manifest.webmanifest',
   'hero.png','hero1.png','hero2.png','coin.png','rock.png','stump.png','crash.png',
+  'title.png','board.png',
   'icon-192.png','icon-512.png','icon-180.png'];
 
 self.addEventListener('install',e=>{

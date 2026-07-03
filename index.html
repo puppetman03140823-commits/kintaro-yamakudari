@@ -36,7 +36,11 @@
          font-size:clamp(18px,5.5vw,24px); font-weight:bold; box-shadow:0 5px 0 #d84315; cursor:pointer; }
   .btn:active { transform:translateY(4px); box-shadow:0 1px 0 #d84315; }
   .score-big { font-size:clamp(30px,11vw,64px); font-weight:bold; text-shadow:2px 2px 0 #b5651d; }
-  /* スタート画面：主役イラスト＋木の看板風タイトル（絵本の雰囲気に合わせる） */
+  /* スタート画面：タイトルロゴ画像＋説明看板画像 */
+  .title-img { width:clamp(200px,46vw,400px); height:auto; filter:drop-shadow(0 6px 10px rgba(0,0,0,.28)); }
+  .board-img { width:clamp(220px,52vw,440px); height:auto; filter:drop-shadow(0 6px 10px rgba(0,0,0,.28)); }
+  .og-left-old { display:flex; flex-direction:column; align-items:center; gap:14px; }
+  /* 以下は画像が読めない時の予備看板 */
   .title-hero { width:clamp(150px,38vw,250px); height:auto; filter:drop-shadow(0 6px 10px rgba(0,0,0,.28)); }
   h1.sign { font-family:'Hachi Maru Pop','Mochiy Pop One',"Hiragino Maru Gothic ProN",sans-serif;
     display:flex; flex-direction:column; align-items:center; line-height:1.15;
@@ -59,6 +63,8 @@
     h1 { font-size:clamp(22px,7.5vh,44px); }
     .emoji { font-size:clamp(34px,11vh,64px); }
     .crash-img { width:auto; height:clamp(120px,44vh,230px); }
+    .title-img { width:auto; height:clamp(150px,56vh,320px); }
+    .board-img { width:auto; height:clamp(170px,64vh,360px); }
     .title-hero { width:auto; height:clamp(110px,42vh,220px); }
     h1.sign { padding:8px 22px; }
     h1.sign .t1 { font-size:clamp(16px,5vh,28px); }
@@ -82,16 +88,24 @@
 <div id="wrap">
   <canvas id="game"></canvas>
 
-  <!-- スタート画面 -->
+  <!-- スタート画面（タイトルロゴ＋説明看板の2枚看板。画像が無い時は従来の手作り看板に戻る） -->
   <div id="startScreen" class="overlay">
     <div class="og-left">
-      <img id="titleHero" class="title-hero hidden" alt="" src="hero.png"
-           onload="this.classList.remove('hidden');document.getElementById('titleEmoji').classList.add('hidden');"
+      <img id="titleImg" class="title-img hidden" alt="きんたろうラン" src="title.png"
+           onload="this.classList.remove('hidden');document.getElementById('titleOld').classList.add('hidden');"
            onerror="this.remove();">
-      <div class="emoji" id="titleEmoji">🐻</div>
-      <h1 class="sign"><span class="t1">きんたろう</span><span class="t2">ラン</span></h1>
+      <div id="titleOld" class="og-left-old">
+        <img id="titleHero" class="title-hero hidden" alt="" src="hero.png"
+             onload="this.classList.remove('hidden');document.getElementById('titleEmoji').classList.add('hidden');"
+             onerror="this.remove();">
+        <div class="emoji" id="titleEmoji">🐻</div>
+        <h1 class="sign"><span class="t1">きんたろう</span><span class="t2">ラン</span></h1>
+      </div>
     </div>
-    <div class="panel">
+    <img id="boardImg" class="board-img hidden" alt="あそびかた" src="board.png"
+         onload="this.classList.remove('hidden');document.getElementById('startPanel').classList.add('hidden');"
+         onerror="this.remove();">
+    <div class="panel" id="startPanel">
       <div class="sub story">つよい さむらいに なるために<br>うまのりの れんしゅうを する きんたろう。<br>きょうも クマに のって<br>あしがらやまを かけぬけろ！</div>
       <div class="sub howto">👆 タップで ジャンプ（2かいまで OK）<br>いわと きりかぶを よけて、こばんを あつめよう✨</div>
       <button class="btn" id="startBtn">あそぶ</button>
