@@ -736,7 +736,7 @@ function drawBearWithKintaro(x, footY, size){
     if(!player.onGround) frame = g1;
     else frame = (Math.floor(runT*0.6) % 2 === 0) ? g1 : g2;
     // 金色版は周りに光の余白があるぶん、少し大きく・低めに描いて通常時と大きさ/接地を合わせる
-    if(gold && hasImg('heroS1')) drawImgBottom(frame, x, footY + size*0.14, size*2.05);
+    if(gold && hasImg('heroS1')) drawImgBottom(frame, x, footY + size*0.29, size*2.45);
     else drawImgBottom(frame, x, footY, size*1.95);
     return;
   }
