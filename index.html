@@ -204,7 +204,8 @@ window.addEventListener('load', ()=>{ resize(); setTimeout(resize,300); });
 resize();
 
 // ----- 画像（あれば手描きの代わりに使う / 無ければ手描きにフォールバック） -----
-const IMG_FILES = { hero:'hero.png', hero1:'hero1.png', hero2:'hero2.png', coin:'coin.png', rock:'rock.png', stump:'stump.png' };
+const IMG_FILES = { hero:'hero.png', hero1:'hero1.png', hero2:'hero2.png', coin:'coin.png', rock:'rock.png', stump:'stump.png',
+  heroS:'hero_star.png', heroS1:'hero_star1.png', heroS2:'hero_star2.png', starmsg:'starmsg.png' }; // 金色版＋スター文字（無ければ従来にフォールバック）
 const IMG = {}, imgReady = {};
 for(const k in IMG_FILES){
   const im = new Image();
@@ -647,11 +648,18 @@ function draw(){
     if(stageMsgT>0){
       ctx.save();
       ctx.globalAlpha = Math.min(1, stageMsgT/30);
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.font=`${Math.max(24,W*0.058)}px "Mochiy Pop One",sans-serif`;
-      ctx.lineWidth=7; ctx.strokeStyle='#b5651d'; ctx.fillStyle='#fff';
-      ctx.strokeText(msgText, W/2, H*0.30);
-      ctx.fillText(msgText, W/2, H*0.30);
+      if(msgText==='スター！ むてき！' && hasImg('starmsg')){
+        // 用意した画像があれば文字の代わりに表示（無ければ下の手描き文字）
+        const iw = Math.min(W*0.7, IMG.starmsg.naturalWidth);
+        const ih = iw * IMG.starmsg.naturalHeight/IMG.starmsg.naturalWidth;
+        ctx.drawImage(IMG.starmsg, W/2-iw/2, H*0.30-ih/2, iw, ih);
+      } else {
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.font=`${Math.max(24,W*0.058)}px "Mochiy Pop One",sans-serif`;
+        ctx.lineWidth=7; ctx.strokeStyle='#b5651d'; ctx.fillStyle='#fff';
+        ctx.strokeText(msgText, W/2, H*0.30);
+        ctx.fillText(msgText, W/2, H*0.30);
+      }
       ctx.restore();
     }
   }
@@ -732,16 +740,20 @@ function drawBearWithKintaro(x, footY, size){
   ctx.restore();
 
   // 2コマあればパラパラでギャロップ。地面で走るときだけ交互、ジャンプ中は伸びポーズで固定。
+  const gold = starT>0;   // スター中は金色版に差し替え（画像があれば）
   if(USE.hero2f){
+    const g1 = (gold && hasImg('heroS1')) ? IMG.heroS1 : IMG.hero1;
+    const g2 = (gold && hasImg('heroS2')) ? IMG.heroS2 : IMG.hero2;
     let frame;
-    if(!player.onGround) frame = IMG.hero1;
-    else frame = (Math.floor(runT*0.6) % 2 === 0) ? IMG.hero1 : IMG.hero2;
+    if(!player.onGround) frame = g1;
+    else frame = (Math.floor(runT*0.6) % 2 === 0) ? g1 : g2;
     drawImgBottom(frame, x, footY, size*1.95);
     return;
   }
   // 1枚だけのとき
   if(USE.hero){
-    drawImgBottom(IMG.hero, x, footY + Math.abs(Math.sin(bobT))*size*0.02, size*1.85 - bob);
+    const hh = (gold && hasImg('heroS')) ? IMG.heroS : IMG.hero;
+    drawImgBottom(hh, x, footY + Math.abs(Math.sin(bobT))*size*0.02, size*1.85 - bob);
     return;
   }
 
