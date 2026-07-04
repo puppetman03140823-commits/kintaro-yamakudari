@@ -1,4 +1,4 @@
-const CACHE='kintaro-v8';
+const CACHE='kintaro-v9';
 const ASSETS=['./','index.html','manifest.webmanifest',
   'hero.png','hero1.png','hero2.png','coin.png','rock.png','stump.png','crash.png',
   'hero_star.png','hero_star1.png','hero_star2.png',
