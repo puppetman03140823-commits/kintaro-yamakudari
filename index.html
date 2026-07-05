@@ -409,6 +409,8 @@ function gatedStart(){
   if(startPending || state===STATE.PLAY) return;
   // どっすん直後（結果画面が出るまでの0.5秒）は誤タップで飛ばさない
   if(state===STATE.OVER && document.getElementById('overScreen').classList.contains('hidden')) return;
+  // 遊んでいる間に新しいバージョンが届いていたら、次のゲームを始める前に切り替える
+  if(window.__checkReload && window.__checkReload()) return;
   if(assetsAllReady()){ start(); return; }
   startPending = true;
   const t0 = Date.now();
@@ -827,8 +829,31 @@ function loop(){ update(); draw(); requestAnimationFrame(loop); }
 reset(); loop();
 
 // ----- PWA（ホーム画面追加・オフライン対応。file://直開きでは何もしない） -----
+// 古いバージョンで起動してしまう問題への対策：
+// ①起動時とアプリに戻ったときに更新チェック ②新版が有効になったら自動で再読込
+// （遊んでいる最中は邪魔しない：タイトル/結果画面のときだけ再読込。プレイ中なら次の「もういちど」の前に切替）
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
-  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+  let pendingReload = false, reloaded = false;
+  const hadController = { v:false };
+  window.addEventListener('load', ()=>{
+    hadController.v = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      const check = ()=>{ try{ reg.update(); }catch(e){} };
+      check();
+      document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') check(); });
+    }).catch(()=>{});
+  });
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+    // 初回インストール時は再読込しない（初訪問でいきなりリロードされるのを防ぐ）
+    if(!hadController.v){ hadController.v = true; return; }
+    if(reloaded) return;
+    if(state === STATE.PLAY){ pendingReload = true; return; }
+    reloaded = true; location.reload();
+  });
+  window.__checkReload = ()=>{
+    if(pendingReload && state !== STATE.PLAY){ reloaded = true; location.reload(); return true; }
+    return false;
+  };
 }
 </script>
 </body>

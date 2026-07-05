@@ -1,4 +1,4 @@
-const CACHE='kintaro-v10';
+const CACHE='kintaro-v11';
 const ASSETS=['./','index.html','manifest.webmanifest',
   'hero.png','hero1.png','hero2.png','coin.png','rock.png','stump.png','crash.png',
   'hero_star.png','hero_star1.png','hero_star2.png',
@@ -15,13 +15,18 @@ self.addEventListener('activate',e=>{
   ).then(()=>self.clients.claim()));
 });
 
-// Network-first: オンラインなら常に最新、オフラインはキャッシュで動く（kaimono-memoで実証済みの方式）
+// Network-first: オンラインなら常に最新、オフラインはキャッシュで動く
+// ページ本体(index.html)はブラウザのHTTPキャッシュも飛ばして必ず最新を取りに行く
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
+  const isPage = e.request.mode==='navigate' || e.request.url.indexOf('index.html')>=0;
+  const req = isPage ? new Request(e.request.url, {cache:'no-store'}) : e.request;
   e.respondWith(
-    fetch(e.request).then(res=>{
-      const copy=res.clone();
-      caches.open(CACHE).then(c=>c.put(e.request,copy)).catch(()=>{});
+    fetch(req).then(res=>{
+      if(res && res.ok){
+        const copy=res.clone();
+        caches.open(CACHE).then(c=>c.put(e.request,copy)).catch(()=>{});
+      }
       return res;
     }).catch(()=>caches.match(e.request).then(hit=>hit||caches.match('index.html')))
   );
